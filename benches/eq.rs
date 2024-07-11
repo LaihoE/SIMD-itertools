@@ -1,41 +1,47 @@
 #![feature(portable_simd)]
-#![feature(is_sorted)]
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use simd_itertools::SimdEq;
+use simd_itertools::SIMD_LEN;
+use std::fmt::Debug;
+use std::simd::prelude::SimdPartialEq;
+use std::simd::Mask;
+use std::simd::{Simd, SimdElement};
 
-#[inline(always)]
-fn trivial(a: &[i32], b: &[i32]) -> bool {
-    a.iter().eq(b.iter())
-}
-#[inline(always)]
-fn trivial2(a: &[i32], b: &[i32]) -> bool {
-    a == b
-}
-#[inline(always)]
-fn eq_simd(a: &[i32], b: &[i32]) -> bool {
-    a.iter().simd_eq(&b.iter())
+fn benchmark_contains<'a, T: 'static + Copy + PartialEq + Default + Debug>(
+    c: &mut Criterion,
+    name: &str,
+) where
+    T: SimdElement + std::cmp::PartialEq,
+    Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
+{
+    let len = 10000;
+    let v1 = black_box(vec![T::default(); len]);
+    let v2 = black_box(vec![T::default(); len]);
+
+    // assert_eq!(v1, v2);
+
+    c.bench_function(&format!("SIMD equal {}", name), |b| {
+        b.iter(|| black_box(black_box(&v1).iter().simd_eq(&black_box(&v2).iter())))
+    });
+    c.bench_function(&format!("trivial equal {}", name), |b| {
+        b.iter(|| black_box(v1.iter().eq(v2.iter())))
+    });
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let len = 100000;
-    let v1 = vec![44; len];
-    let v2 = vec![44; len];
-
-    assert_eq!(v1, v2);
-
-    let mut group = c.benchmark_group("TEST");
-
-    group.bench_function("SIMD eq chunked", |b| {
-        b.iter(|| eq_simd(black_box(&v1), black_box(&v2)))
-    });
-    group.bench_function("trivial eq", |b| {
-        b.iter(|| trivial(black_box(&v1), black_box(&v2)))
-    });
-    group.bench_function("smart", |b| {
-        b.iter(|| trivial2(black_box(&v1), black_box(&v2)))
-    });
+    benchmark_contains::<u8>(c, "u8");
+    benchmark_contains::<i8>(c, "i8");
+    benchmark_contains::<u16>(c, "u16");
+    benchmark_contains::<i16>(c, "i16");
+    benchmark_contains::<u32>(c, "u32");
+    benchmark_contains::<i32>(c, "i32");
+    benchmark_contains::<u64>(c, "u64");
+    benchmark_contains::<i64>(c, "i64");
+    benchmark_contains::<isize>(c, "isize");
+    benchmark_contains::<usize>(c, "usize");
+    benchmark_contains::<f32>(c, "f32");
+    benchmark_contains::<f64>(c, "f64");
 }
-
 criterion_group!(benches, criterion_benchmark);
 criterion_main!(benches);
