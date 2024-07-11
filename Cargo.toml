@@ -4,9 +4,10 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "SIMD-accelerated alternatives for common operations like contains, max, find etc."
+keywords = ["simd", "iterator"]
+categories = ["algorithms", "concurrency"]
+repository = "https://github.com/LaihoE/SIMD-itertools"
 
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 itertools = "0.13.0"
@@ -17,8 +18,17 @@ rand = "0.8.5"
 
 
 [[bench]]
-name = "min"
+name = "position"
 harness = false
 
 [profile.release]
+lto = true
 debug = true
+
+[profile.bench]
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
