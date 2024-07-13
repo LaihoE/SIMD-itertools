@@ -2,6 +2,8 @@
 #![feature(is_sorted)]
 #![feature(sort_floats)]
 
+pub const SIMD_LEN: usize = 64;
+
 mod all_equal;
 mod contains;
 mod eq;
@@ -11,11 +13,11 @@ mod is_sorted;
 mod max;
 mod min;
 mod position;
-pub const SIMD_LEN: usize = 16;
 
 pub use all_equal::AllEqualSimd;
 pub use contains::ContainsSimd;
 pub use eq::SimdEq;
+pub use filter::FilterSimd;
 pub use find::FindSimd;
 pub use is_sorted::IsSortedSimd;
 pub use max::MaxSimd;
