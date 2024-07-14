@@ -21,7 +21,7 @@ where
     fn is_sorted_simd(&self) -> bool {
         let a = self.as_slice();
 
-        if a.len() <= SIMD_LEN {
+        if a.len() <= SIMD_LEN && !a.is_empty() {
             return a.is_sorted();
         }
 
@@ -63,8 +63,8 @@ mod tests {
         Simd<T, SIMD_LEN>: SimdPartialOrd<Mask = Mask<T::Mask, SIMD_LEN>>,
         Standard: Distribution<T>,
     {
-        for len in 0..100 {
-            for _ in 0..100 {
+        for len in 0..1000 {
+            for _ in 0..5 {
                 let mut v: Vec<T> = vec![T::default(); len];
                 let mut rng = rand::thread_rng();
                 for x in v.iter_mut() {
@@ -90,8 +90,8 @@ mod tests {
     }
     #[test]
     fn test_f32() {
-        for len in 0..70 {
-            for _ in 0..200 {
+        for len in 0..1000 {
+            for _ in 0..5 {
                 let mut v: Vec<f32> = vec![0.0; len];
                 let mut rng = rand::thread_rng();
                 for x in v.iter_mut() {
@@ -114,8 +114,8 @@ mod tests {
     }
     #[test]
     fn test_f64() {
-        for len in 0..70 {
-            for _ in 0..200 {
+        for len in 0..1000 {
+            for _ in 0..5 {
                 let mut v: Vec<f64> = vec![0.0_f64; len];
                 let mut rng = rand::thread_rng();
                 for x in v.iter_mut() {
@@ -139,7 +139,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simd_contains() {
+    fn test_simd_is_sorted() {
         test_integers::<i8>();
         test_integers::<i16>();
         test_integers::<i32>();

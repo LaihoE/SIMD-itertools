@@ -404,8 +404,8 @@ mod tests {
         Simd<T, 8>: SimdPartialOrd<Mask = Mask<T::Mask, 8>>,
         Standard: Distribution<T>,
     {
-        for len in 0..800 {
-            for _ in 0..10 {
+        for len in 0..1000 {
+            for _ in 0..5 {
                 let mut v: Vec<T> = vec![T::default(); len];
                 let mut rng = rand::thread_rng();
                 for x in v.iter_mut() {
@@ -425,8 +425,8 @@ mod tests {
                 );
             }
         }
-        for len in 0..800 {
-            for _ in 0..10 {
+        for len in 0..1000 {
+            for _ in 0..5 {
                 let mut v: Vec<T> = vec![T::default(); len];
                 let mut rng = rand::thread_rng();
                 for x in v.iter_mut() {
@@ -446,8 +446,8 @@ mod tests {
                 );
             }
         }
-        for len in 0..800 {
-            for _ in 0..10 {
+        for len in 0..1000 {
+            for _ in 0..5 {
                 let mut v: Vec<T> = vec![T::default(); len];
                 let mut rng = rand::thread_rng();
                 for x in v.iter_mut() {

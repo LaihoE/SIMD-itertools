@@ -36,7 +36,7 @@ mod tests {
     use rand::Rng;
     use std::fmt::Debug;
 
-    fn test_simd_contains_for_type<T>()
+    fn test_simd_for_type<T>()
     where
         T: rand::distributions::uniform::SampleUniform
             + PartialEq
@@ -48,8 +48,8 @@ mod tests {
         Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
         Standard: Distribution<T>,
     {
-        for len in 0..100 {
-            for _ in 0..100 {
+        for len in 0..1000 {
+            for _ in 0..5 {
                 let mut v: Vec<T> = vec![T::default(); len];
                 let mut rng = rand::thread_rng();
                 for x in v.iter_mut() {
@@ -78,18 +78,18 @@ mod tests {
     }
 
     #[test]
-    fn test_simd_contains() {
-        test_simd_contains_for_type::<i8>();
-        test_simd_contains_for_type::<i16>();
-        test_simd_contains_for_type::<i32>();
-        test_simd_contains_for_type::<i64>();
-        test_simd_contains_for_type::<u8>();
-        test_simd_contains_for_type::<u16>();
-        test_simd_contains_for_type::<u32>();
-        test_simd_contains_for_type::<u64>();
-        test_simd_contains_for_type::<usize>();
-        test_simd_contains_for_type::<isize>();
-        test_simd_contains_for_type::<f32>();
-        test_simd_contains_for_type::<f64>();
+    fn test_simd_find() {
+        test_simd_for_type::<i8>();
+        test_simd_for_type::<i16>();
+        test_simd_for_type::<i32>();
+        test_simd_for_type::<i64>();
+        test_simd_for_type::<u8>();
+        test_simd_for_type::<u16>();
+        test_simd_for_type::<u32>();
+        test_simd_for_type::<u64>();
+        test_simd_for_type::<usize>();
+        test_simd_for_type::<isize>();
+        test_simd_for_type::<f32>();
+        test_simd_for_type::<f64>();
     }
 }

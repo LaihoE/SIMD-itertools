@@ -67,16 +67,11 @@ mod tests {
         Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
         Standard: Distribution<T>,
     {
-        for len in 0..100 {
-            for _ in 0..100 {
+        for len in 0..1000 {
+            for _ in 0..5 {
                 let mut v: Vec<T> = vec![T::default(); len];
                 let mut rng = rand::thread_rng();
                 for x in v.iter_mut() {
-                    *x = rng.gen()
-                }
-                let mut v2: Vec<T> = vec![T::default(); len];
-                let mut rng = rand::thread_rng();
-                for x in v2.iter_mut() {
                     *x = rng.gen()
                 }
 
@@ -99,7 +94,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simd_contains() {
+    fn test_simd() {
         test_for_type::<i8>();
         test_for_type::<i16>();
         test_for_type::<i32>();
