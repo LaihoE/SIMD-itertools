@@ -1,7 +1,7 @@
 #![feature(portable_simd)]
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use simd_itertools::SimdEq;
+use simd_itertools::EqSimd;
 use simd_itertools::SIMD_LEN;
 use std::fmt::Debug;
 use std::simd::prelude::SimdPartialEq;
@@ -22,7 +22,7 @@ fn benchmark_contains<'a, T: 'static + Copy + PartialEq + Default + Debug>(
     // assert_eq!(v1, v2);
 
     c.bench_function(&format!("SIMD equal {}", name), |b| {
-        b.iter(|| black_box(black_box(&v1).iter().simd_eq(&black_box(&v2).iter())))
+        b.iter(|| black_box(black_box(&v1).iter().eq_simd(&black_box(&v2).iter())))
     });
     c.bench_function(&format!("trivial equal {}", name), |b| {
         b.iter(|| black_box(v1.iter().eq(v2.iter())))
