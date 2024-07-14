@@ -5,22 +5,23 @@ use std::simd::Simd;
 use std::simd::SimdElement;
 use std::slice;
 
-pub trait SimdEq<'a, T>
+pub trait EqSimd<'a, T>
 where
     T: SimdElement + std::cmp::PartialEq,
     Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
 {
-    fn simd_eq(&self, other: &Self) -> bool;
+    fn eq_simd(&self, other: &Self) -> bool;
 }
 
-impl<'a, T> SimdEq<'a, T> for slice::Iter<'a, T>
+impl<'a, T> EqSimd<'a, T> for slice::Iter<'a, T>
 where
     T: SimdElement + std::cmp::PartialEq,
     Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
 {
-    fn simd_eq(&self, other: &Self) -> bool {
+    fn eq_simd(&self, other: &Self) -> bool {
         let a = self.as_slice();
         let b = other.as_slice();
+        // This could save lots of time, but not sure if it's actually worth it
         if a.len() != b.len() {
             return false;
         }
@@ -62,8 +63,8 @@ mod tests {
         Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
         Standard: Distribution<T>,
     {
-        for len in 0..100 {
-            for _ in 0..100 {
+        for len in 0..1000 {
+            for _ in 0..5 {
                 let mut v: Vec<T> = vec![T::default(); len];
                 let mut rng = rand::thread_rng();
                 for x in v.iter_mut() {
@@ -75,7 +76,7 @@ mod tests {
                     *x = rng.gen()
                 }
 
-                let ans = v.iter().simd_eq(&v2.iter());
+                let ans = v.iter().eq_simd(&v2.iter());
                 let correct = v.iter().eq(&v2);
 
                 assert_eq!(
@@ -90,7 +91,7 @@ mod tests {
     }
 
     #[test]
-    fn test_eq() {
+    fn test_eq_simd() {
         test_for_type::<i8>();
         test_for_type::<i16>();
         test_for_type::<i32>();
