@@ -23,7 +23,7 @@ Currently the following are implemented:
 
 
 
-###  Performance gain of compared to std implementation (u32) 🔥
+### 🔥 Performance gain compared to std lib implementation (u32) 🔥
 ![Performance gain of compared to std implementation (u32)](benchmark.png)
 
 
