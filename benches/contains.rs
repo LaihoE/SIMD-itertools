@@ -11,14 +11,6 @@ use std::simd::prelude::SimdPartialEq;
 use std::simd::Mask;
 use std::simd::{Simd, SimdElement};
 
-#[inline(always)]
-fn trivial<T>(arr: &[T], val: T) -> bool
-where
-    T: std::cmp::PartialEq,
-{
-    arr.iter().contains(&val)
-}
-
 fn benchmark_contains<'a, T: 'static + Copy + PartialEq + Default + Debug>(
     c: &mut Criterion,
     name: &str,
@@ -34,10 +26,10 @@ fn benchmark_contains<'a, T: 'static + Copy + PartialEq + Default + Debug>(
     assert_eq!(v1, v2);
 
     c.bench_function(&format!("SIMD all equal {}", name), |b| {
-        b.iter(|| black_box(v1.iter().contains_simd(needle)))
+        b.iter(|| black_box(v1.iter().contains_simd(&needle)))
     });
     c.bench_function(&format!("trivial all equal {}", name), |b| {
-        b.iter(|| trivial(black_box(&v1), needle))
+        b.iter(|| black_box(v1.iter().contains(&needle)))
     });
 }
 
@@ -56,10 +48,10 @@ fn benchmark_contains_floats<'a, T: 'static + Copy + PartialEq + Default + Debug
     assert_eq!(v1, v2);
 
     c.bench_function(&format!("SIMD all equal {}", name), |b| {
-        b.iter(|| black_box(v1.iter().contains_simd(needle)))
+        b.iter(|| black_box(v1.iter().contains_simd(&needle)))
     });
     c.bench_function(&format!("trivial all equal {}", name), |b| {
-        b.iter(|| trivial(black_box(&v1), needle))
+        b.iter(|| black_box(v1.iter().contains(&needle)))
     });
 }
 

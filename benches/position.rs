@@ -4,21 +4,13 @@
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use itertools::Itertools;
-use simd_itertools::ContainsSimd;
 use simd_itertools::PositionSimd;
 use simd_itertools::SIMD_LEN;
 use std::fmt::Debug;
 use std::simd::prelude::SimdPartialEq;
 use std::simd::Mask;
 use std::simd::{Simd, SimdElement};
-
-#[inline(always)]
-fn trivial<T>(arr: &[T], val: T) -> bool
-where
-    T: std::cmp::PartialEq,
-{
-    arr.iter().contains(&val)
-}
+use std::time::Duration;
 
 fn benchmark_contains<'a, T: 'static + Copy + PartialEq + Default + Debug>(
     c: &mut Criterion,
@@ -28,18 +20,28 @@ fn benchmark_contains<'a, T: 'static + Copy + PartialEq + Default + Debug>(
     Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
     <T as TryFrom<i32>>::Error: Debug,
 {
-    let len = 1000;
-    let v1 = vec![T::default(); len];
-    let v2 = vec![T::default(); len];
-    let needle: T = 55.try_into().unwrap();
-    assert_eq!(v1, v2);
+    let vs = (0..200).map(|x| x * 10).collect_vec();
+    for len in vs {
+        //let len = 1000;
+        let v1 = vec![T::default(); len];
+        let v2 = vec![T::default(); len];
+        let needle: T = 55.try_into().unwrap();
+        assert_eq!(v1, v2);
 
-    c.bench_function(&format!("SIMD position {}", name), |b| {
-        b.iter(|| black_box(v1.iter().contains_simd(needle)))
-    });
-    c.bench_function(&format!("trivial position {}", name), |b| {
-        b.iter(|| trivial(black_box(&v1), needle))
-    });
+        let mut group = Criterion::default()
+            .warm_up_time(Duration::from_secs(1))
+            // .sample_size(50)
+            .measurement_time(Duration::from_secs(1));
+
+        group.bench_function(
+            &format!("SIMD position {}@{}@{}", name, len, SIMD_LEN),
+            |b| b.iter(|| black_box(v1.iter().position_simd(needle))),
+        );
+        group.bench_function(
+            &format!("Scalar position {}@{}@{}", name, len, SIMD_LEN),
+            |b| b.iter(|| black_box(v1.iter().position(|x| *x == needle))),
+        );
+    }
 }
 fn benchmark_contains_floats<'a, T: 'static + Copy + PartialEq + Default + Debug>(
     c: &mut Criterion,
@@ -53,20 +55,29 @@ fn benchmark_contains_floats<'a, T: 'static + Copy + PartialEq + Default + Debug
     let v1 = vec![T::default(); len];
     let needle: T = 55.0.try_into().unwrap();
 
-    c.bench_function(&format!("SIMD position {}", name), |b| {
-        b.iter(|| black_box(v1.iter().position_simd(needle)))
-    });
-    c.bench_function(&format!("trivial position {}", name), |b| {
-        b.iter(|| black_box(v1.iter().position(|x| *x == needle)))
-    });
+    let mut group = Criterion::default()
+        .warm_up_time(Duration::from_secs(1))
+        // .sample_size(50)
+        .measurement_time(Duration::from_secs(1));
+
+    group.bench_function(
+        &format!("SIMD position {}@{}@{}", name, len, SIMD_LEN),
+        |b| b.iter(|| black_box(v1.iter().position_simd(needle))),
+    );
+    group.bench_function(
+        &format!("Scalar position {}@{}@{}", name, len, SIMD_LEN),
+        |b| b.iter(|| black_box(v1.iter().position(|x| *x == needle))),
+    );
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
     benchmark_contains::<u8>(c, "u8");
+    benchmark_contains::<u64>(c, "u64");
+    benchmark_contains::<u32>(c, "u32");
+    benchmark_contains::<u8>(c, "u8");
     benchmark_contains::<i8>(c, "i8");
     benchmark_contains::<u16>(c, "u16");
     benchmark_contains::<i16>(c, "i16");
-    benchmark_contains::<u32>(c, "u32");
     benchmark_contains::<i32>(c, "i32");
     benchmark_contains::<u64>(c, "u64");
     benchmark_contains::<i64>(c, "i64");

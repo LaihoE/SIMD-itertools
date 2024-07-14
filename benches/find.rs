@@ -3,7 +3,6 @@
 #![feature(sort_floats)]
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use simd_itertools::ContainsSimd;
 use simd_itertools::FindSimd;
 use simd_itertools::SIMD_LEN;
 use std::fmt::Debug;
@@ -25,10 +24,10 @@ fn benchmark_contains<'a, T: 'static + Copy + PartialEq + Default + Debug>(
     let needle: T = 55.try_into().unwrap();
     assert_eq!(v1, v2);
 
-    c.bench_function(&format!("SIMD all equal {}", name), |b| {
-        b.iter(|| black_box(v1.iter().contains_simd(needle)))
+    c.bench_function(&format!("SIMD find {}", name), |b| {
+        b.iter(|| black_box(v1.iter().find_simd(needle)))
     });
-    c.bench_function(&format!("trivial all equal {}", name), |b| {
+    c.bench_function(&format!("trivial find {}", name), |b| {
         b.iter(|| black_box(v1.iter().find(|x| **x == needle)))
     });
 }
