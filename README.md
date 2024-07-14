@@ -1,4 +1,4 @@
-##  SIMD alterinatives for common Rust operations
+#  SIMD-accelerated iterators
 
 Change:
 ```Rust
@@ -9,30 +9,27 @@ To:
 arr.iter().min_simd()
 ```
 
-Requires nightly for now:
-```
+
+Currently the following are implemented:
+
+```find```
+```filter```
+```position```
+```contains```
+```eq```
+```min/max```
+```is_sorted```
+```all_equal```
+
+
+
+###  Performance gain of compared to std implementation (u32) 🔥
+![Performance gain of compared to std implementation (u32)](benchmark.png)
+
+
+Requires nightly for now :/:
+```Rust
 rustup toolchain install nightly
-rustup run nightly cargo run
-```
-Or set nightly as default: 
-```
 rustup default nightly
-cargo run
+// revert back to stable: rustup default stable
 ```
-
-Implements the following:
-
-- ```min/max```
-- ```position```
-- ```find```
-- ```contains```
-- ```equal```
-- ```all_equal```
-- ```is_sorted```
-
-
-
-
-![Performance gain of different size iterators (u32)](benchmark_u32.png)
-
-
