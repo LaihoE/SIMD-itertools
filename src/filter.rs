@@ -27,13 +27,12 @@ where
         let mut indicies = vec![];
         let (prefix, simd_chunk, suffix) = a.as_simd::<8>();
         let prefix_filters = prefix.iter().filter(|x| **x < needle);
-        let x = prefix_filters.clone().count();
 
         indicies.extend(prefix_filters);
-        indicies.resize(std::cmp::max(x, 64), T::default());
-
+        let prefix_filters_len = indicies.len();
+        indicies.resize(std::cmp::max(prefix_filters_len, 64), T::default());
         let simd_needle = Simd::splat(needle);
-        let mut simd_idx = x;
+        let mut simd_idx = prefix_filters_len;
 
         // SIMD
         for chunk in simd_chunk {
@@ -43,7 +42,6 @@ where
                 let idxs = SET_BITS_TO_INDICIES[bitmask as usize];
                 chunk.scatter(&mut indicies[simd_idx..], idxs);
                 simd_idx += bitmask.count_ones() as usize;
-
                 if simd_idx <= indicies.len() {
                     indicies.resize(indicies.len() + 64, T::default());
                 }
@@ -60,13 +58,12 @@ where
         let mut indicies = vec![];
         let (prefix, simd_chunk, suffix) = a.as_simd::<8>();
         let prefix_filters = prefix.iter().filter(|x| **x > needle);
-        let x = prefix_filters.clone().count();
 
         indicies.extend(prefix_filters);
-        indicies.resize(std::cmp::max(x, 64), T::default());
-
+        let prefix_filters_len = indicies.len();
+        indicies.resize(std::cmp::max(prefix_filters_len, 64), T::default());
         let simd_needle = Simd::splat(needle);
-        let mut simd_idx = x;
+        let mut simd_idx = prefix_filters_len;
 
         // SIMD
         for chunk in simd_chunk {
@@ -93,13 +90,12 @@ where
         let mut indicies = vec![];
         let (prefix, simd_chunk, suffix) = a.as_simd::<8>();
         let prefix_filters = prefix.iter().filter(|x| **x == needle);
-        let x = prefix_filters.clone().count();
 
         indicies.extend(prefix_filters);
-        indicies.resize(std::cmp::max(x, 64), T::default());
-
+        let prefix_filters_len = indicies.len();
+        indicies.resize(std::cmp::max(prefix_filters_len, 64), T::default());
         let simd_needle = Simd::splat(needle);
-        let mut simd_idx = x;
+        let mut simd_idx = prefix_filters_len;
 
         // SIMD
         for chunk in simd_chunk {
