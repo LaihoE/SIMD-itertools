@@ -30,6 +30,7 @@ where
         }
         let chunks_a = a.chunks_exact(SIMD_LEN);
         let chunks_b = b.chunks_exact(SIMD_LEN);
+        let reminder_is_sorted = chunks_a.remainder().iter().eq(chunks_b.remainder().iter());
 
         for (a, b) in chunks_a.zip(chunks_b) {
             let chunk_a = Simd::from_slice(a);
@@ -38,7 +39,7 @@ where
                 return false;
             }
         }
-        return true;
+        return reminder_is_sorted;
     }
 }
 
@@ -122,6 +123,14 @@ mod tests {
                 );
             }
         }
+    }
+    #[test]
+    fn test_reminder_eq() {
+        let a = [0; SIMD_LEN + 4];
+        let b = [0; SIMD_LEN + 4];
+        let expected = a.into_iter().eq(b);
+        let got = a.iter().eq_simd(&b.iter());
+        assert_eq!(expected, got);
     }
     #[test]
     fn test_a_and_b_unequal_split() {
