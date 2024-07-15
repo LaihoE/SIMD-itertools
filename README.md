@@ -1,5 +1,7 @@
 #  SIMD-accelerated iterators
 
+[![crates.io](https://img.shields.io/crates/v/simd-itertools.svg)](https://crates.io/crates/itertools)
+
 Change:
 ```Rust
 arr.iter().contains()
