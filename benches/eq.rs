@@ -19,8 +19,6 @@ fn benchmark_contains<'a, T: 'static + Copy + PartialEq + Default + Debug>(
     let v1 = black_box(vec![T::default(); len]);
     let v2 = black_box(vec![T::default(); len]);
 
-    // assert_eq!(v1, v2);
-
     c.bench_function(&format!("SIMD equal {}", name), |b| {
         b.iter(|| black_box(black_box(&v1).iter().eq_simd(&black_box(&v2).iter())))
     });
