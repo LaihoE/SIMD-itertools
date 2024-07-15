@@ -25,15 +25,19 @@ where
             return a.is_sorted();
         }
 
-        let chunks = a.chunks_exact(SIMD_LEN);
+        let chunks_a = a.chunks_exact(SIMD_LEN);
         let chunks_b = a[1..].chunks_exact(SIMD_LEN);
-        let reminder_a_is_sorted = chunks.remainder().iter().is_sorted();
-        let reminder_b_is_sorted = chunks.remainder().iter().is_sorted();
+        let reminder_a_is_sorted = chunks_a.remainder().iter().is_sorted();
+        let reminder_b_is_sorted = chunks_b.remainder().iter().is_sorted();
 
-        for (a, b) in chunks.zip(chunks_b) {
+        // chunk:         [1,2,3,4]
+        // offset_by_one: [2,3,4,5]
+        // If for all chunk[i] <= offset[i] then the slice is sorted
+
+        for (a, b) in chunks_a.zip(chunks_b) {
             let chunk = Simd::from_slice(a);
-            let off_chunk = Simd::from_slice(b);
-            if chunk.simd_gt(off_chunk).to_bitmask() != 0 {
+            let chunk_offset_by_one = Simd::from_slice(b);
+            if chunk.simd_gt(chunk_offset_by_one).to_bitmask() != 0 {
                 return false;
             }
         }
@@ -64,7 +68,7 @@ mod tests {
         Standard: Distribution<T>,
     {
         for len in 0..1000 {
-            for _ in 0..5 {
+            for _ in 0..50 {
                 let mut v: Vec<T> = vec![T::default(); len];
                 let mut rng = rand::thread_rng();
                 for x in v.iter_mut() {
