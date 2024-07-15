@@ -21,25 +21,24 @@ where
     fn eq_simd(&self, other: &Self) -> bool {
         let a = self.as_slice();
         let b = other.as_slice();
-        // This could save lots of time, but not sure if it's actually worth it
+
         if a.len() != b.len() {
             return false;
         }
-        let (a_prefix, a_simd_chunk, a_suffix) = a.as_simd::<SIMD_LEN>();
-        let (b_prefix, b_simd_chunk, b_suffix) = b.as_simd::<SIMD_LEN>();
-        // Prefix
-        if a_prefix.iter().ne(b_prefix.iter()) {
-            return false;
+        if a.len() <= SIMD_LEN || b.len() <= SIMD_LEN {
+            return a.iter().eq(b);
         }
-        // SIMD
-        for (a_simd, b_simd) in a_simd_chunk.iter().zip(b_simd_chunk) {
-            // Note that we use not equal
-            if a_simd.simd_ne(*b_simd).to_bitmask() != 0 {
+        let chunks_a = a.chunks_exact(SIMD_LEN);
+        let chunks_b = b.chunks_exact(SIMD_LEN);
+
+        for (a, b) in chunks_a.zip(chunks_b) {
+            let chunk_a = Simd::from_slice(a);
+            let chunk_b = Simd::from_slice(b);
+            if chunk_a.simd_ne(chunk_b).to_bitmask() != 0 {
                 return false;
             }
         }
-        // Suffix
-        a_suffix.iter().eq(b_suffix)
+        return true;
     }
 }
 
@@ -89,7 +88,49 @@ mod tests {
             }
         }
     }
+    fn test_for_type_equal_values<T>()
+    where
+        T: rand::distributions::uniform::SampleUniform
+            + PartialEq
+            + Debug
+            + Copy
+            + Default
+            + SimdElement
+            + std::cmp::PartialEq,
+        Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
+        Standard: Distribution<T>,
+    {
+        for len in 0..1000 {
+            for _ in 0..5 {
+                let mut v: Vec<T> = vec![T::default(); len];
+                let mut rng = rand::thread_rng();
+                for x in v.iter_mut() {
+                    *x = rng.gen()
+                }
+                let mut v2: Vec<T> = vec![T::default(); len];
+                v2 = v.clone();
 
+                let ans = v.iter().eq_simd(&v2.iter());
+                let correct = v.iter().eq(&v2);
+
+                assert_eq!(
+                    ans,
+                    correct,
+                    "Failed for length {} and type {:?}",
+                    len,
+                    std::any::type_name::<T>()
+                );
+            }
+        }
+    }
+    #[test]
+    fn test_a_and_b_unequal_split() {
+        let a = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+        let b = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+        let expected = a.into_iter().eq(b);
+        let got = a.iter().eq_simd(&b.iter());
+        assert_eq!(expected, got);
+    }
     #[test]
     fn test_eq_simd() {
         test_for_type::<i8>();
@@ -104,5 +145,18 @@ mod tests {
         test_for_type::<isize>();
         test_for_type::<f32>();
         test_for_type::<f64>();
+
+        test_for_type_equal_values::<i8>();
+        test_for_type_equal_values::<i16>();
+        test_for_type_equal_values::<i32>();
+        test_for_type_equal_values::<i64>();
+        test_for_type_equal_values::<u8>();
+        test_for_type_equal_values::<u16>();
+        test_for_type_equal_values::<u32>();
+        test_for_type_equal_values::<u64>();
+        test_for_type_equal_values::<usize>();
+        test_for_type_equal_values::<isize>();
+        test_for_type_equal_values::<f32>();
+        test_for_type_equal_values::<f64>();
     }
 }
