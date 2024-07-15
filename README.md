@@ -1,6 +1,6 @@
 #  SIMD-accelerated iterators
 
-[![crates.io](https://img.shields.io/crates/v/simd-itertools.svg)](https://crates.io/crates/itertools)
+[![crates.io](https://img.shields.io/crates/v/simd-itertools.svg)](https://crates.io/crates/simd-itertools)
 
 Change:
 ```Rust
