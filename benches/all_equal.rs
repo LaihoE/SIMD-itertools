@@ -10,46 +10,45 @@ use std::simd::prelude::SimdPartialEq;
 use std::simd::Mask;
 use std::simd::Simd;
 use std::simd::SimdElement;
-
-#[inline(always)]
-fn trivial<T: PartialEq>(a: &[T]) -> bool {
-    a.iter().all_equal()
-}
+use std::time::Duration;
 
 fn benchmark_all_equal<'a, T: 'static + Copy + PartialEq + Default + Debug>(
-    c: &mut Criterion,
+    _c: &mut Criterion,
     name: &str,
+    len: usize,
 ) where
     T: SimdElement + std::cmp::PartialEq,
     Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
 {
-    let len = 1000;
     let v1 = vec![T::default(); len];
-    let v2 = vec![T::default(); len];
 
-    assert_eq!(v1, v2);
+    let mut group = Criterion::default()
+        .warm_up_time(Duration::from_secs(1))
+        .measurement_time(Duration::from_secs(1));
 
-    c.bench_function(&format!("SIMD all equal {}", name), |b| {
+    group.bench_function(&format!("SIMD all_equal {} {}", name, len), |b| {
         b.iter(|| black_box(v1.iter().all_equal_simd()))
     });
-    c.bench_function(&format!("trivial all equal {}", name), |b| {
-        b.iter(|| trivial(black_box(&v1)))
+    group.bench_function(&format!("Scalar all_equal {} {}", name, len), |b| {
+        b.iter(|| black_box(v1.iter().all_equal()))
     });
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    benchmark_all_equal::<u8>(c, "u8");
-    benchmark_all_equal::<i8>(c, "i8");
-    benchmark_all_equal::<u16>(c, "u16");
-    benchmark_all_equal::<i16>(c, "i16");
-    benchmark_all_equal::<u32>(c, "u32");
-    benchmark_all_equal::<i32>(c, "i32");
-    benchmark_all_equal::<u64>(c, "u64");
-    benchmark_all_equal::<i64>(c, "i64");
-    benchmark_all_equal::<f32>(c, "f32");
-    benchmark_all_equal::<f64>(c, "f64");
-    benchmark_all_equal::<isize>(c, "isize");
-    benchmark_all_equal::<usize>(c, "usize");
+    for n in (0..200).map(|x| x * 10) {
+        benchmark_all_equal::<u8>(c, "u8", n);
+        benchmark_all_equal::<i8>(c, "i8", n);
+        benchmark_all_equal::<u16>(c, "u16", n);
+        benchmark_all_equal::<i16>(c, "i16", n);
+        benchmark_all_equal::<u32>(c, "u32", n);
+        benchmark_all_equal::<i32>(c, "i32", n);
+        benchmark_all_equal::<u64>(c, "u64", n);
+        benchmark_all_equal::<i64>(c, "i64", n);
+        benchmark_all_equal::<f32>(c, "f32", n);
+        benchmark_all_equal::<f64>(c, "f64", n);
+        benchmark_all_equal::<isize>(c, "isize", n);
+        benchmark_all_equal::<usize>(c, "usize", n);
+    }
 }
 
 criterion_group!(benches, criterion_benchmark);
