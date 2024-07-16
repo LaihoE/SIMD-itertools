@@ -30,7 +30,7 @@ where
         }
         let chunks_a = a.chunks_exact(SIMD_LEN);
         let chunks_b = b.chunks_exact(SIMD_LEN);
-        let reminder_is_sorted = chunks_a.remainder().iter().eq(chunks_b.remainder().iter());
+        let remainder_is_sorted = chunks_a.remainder().iter().eq(chunks_b.remainder().iter());
 
         for (a, b) in chunks_a.zip(chunks_b) {
             let chunk_a = Simd::from_slice(a);
@@ -39,7 +39,7 @@ where
                 return false;
             }
         }
-        return reminder_is_sorted;
+        return remainder_is_sorted;
     }
 }
 
@@ -108,8 +108,7 @@ mod tests {
                 for x in v.iter_mut() {
                     *x = rng.gen()
                 }
-                let mut v2: Vec<T> = vec![T::default(); len];
-                v2 = v.clone();
+                let v2 = v.clone();
 
                 let ans = v.iter().eq_simd(&v2.iter());
                 let correct = v.iter().eq(&v2);
