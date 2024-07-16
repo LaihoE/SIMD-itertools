@@ -21,6 +21,38 @@ rand = "0.8.5"
 name = "position"
 harness = false
 
+[[bench]]
+name = "all_equal"
+harness = false
+
+[[bench]]
+name = "contains"
+harness = false
+
+[[bench]]
+name = "eq"
+harness = false
+
+[[bench]]
+name = "filter"
+harness = false
+
+[[bench]]
+name = "find"
+harness = false
+
+[[bench]]
+name = "is_sorted"
+harness = false
+
+[[bench]]
+name = "max"
+harness = false
+
+[[bench]]
+name = "min"
+harness = false
+
 [profile.release]
 lto = true
 debug = true
