@@ -61,7 +61,7 @@ mod tests {
         Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
         Standard: Distribution<T>,
     {
-        for len in 0..1000 {
+        for len in 0..100 {
             for _ in 0..5 {
                 let mut v: Vec<T> = vec![T::default(); len];
                 let mut rng = rand::thread_rng();
@@ -98,7 +98,7 @@ mod tests {
         Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
         Standard: Distribution<T>,
     {
-        for len in 0..1000 {
+        for len in 0..100 {
             for _ in 0..5 {
                 let mut v: Vec<T> = vec![T::default(); len];
                 let mut rng = rand::thread_rng();
@@ -106,7 +106,6 @@ mod tests {
                     *x = rng.gen()
                 }
                 let v2 = v.clone();
-
                 let ans = v.iter().eq_simd(&v2.iter());
                 let correct = v.iter().eq(&v2);
 

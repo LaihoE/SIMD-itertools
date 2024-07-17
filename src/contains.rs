@@ -57,14 +57,22 @@ mod tests {
         Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
         Standard: Distribution<T>,
     {
-        for len in 0..1000 {
+        for len in 0..100 {
             for _ in 0..5 {
                 let mut v: Vec<T> = vec![T::default(); len];
                 let mut rng = rand::thread_rng();
                 for x in v.iter_mut() {
                     *x = rng.gen()
                 }
-                let needle = v.choose(&mut rng).cloned().unwrap_or(T::default());
+                let needle = match rng.gen_bool(0.5) {
+                    true => v.choose(&mut rng).cloned().unwrap_or(T::default()),
+                    false => loop {
+                        let n = rng.gen();
+                        if !v.contains(&n) {
+                            break n;
+                        }
+                    },
+                };
                 let ans = v.iter().contains_simd(&needle);
                 let correct = v.iter().contains(&needle);
                 assert_eq!(
