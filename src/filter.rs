@@ -19,7 +19,7 @@ where
 // TODO REMOVE DUPLICATION?
 impl<'a, T> FilterSimd<'a, T> for slice::Iter<'a, T>
 where
-    T: SimdElement + std::cmp::PartialEq + std::cmp::PartialOrd + std::fmt::Debug + Default,
+    T: SimdElement + std::cmp::PartialEq + std::cmp::PartialOrd + Default,
     Simd<T, 8>: SimdPartialOrd<Mask = Mask<T::Mask, 8>>,
 {
     fn filter_simd_lt(&self, needle: T) -> Vec<T> {

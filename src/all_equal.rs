@@ -49,13 +49,11 @@ mod tests {
     use rand::distributions::Standard;
     use rand::prelude::Distribution;
     use rand::Rng;
-    use std::fmt::Debug;
 
     fn test_simd_for_type<T>()
     where
         T: rand::distributions::uniform::SampleUniform
             + PartialEq
-            + Debug
             + Copy
             + Default
             + SimdElement
