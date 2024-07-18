@@ -13,7 +13,7 @@ where
     Simd<T, 8>: SimdPartialOrd<Mask = Mask<T::Mask, 8>>,
     <T as TryFrom<i32>>::Error: Debug,
 {
-    let mut group = c.benchmark_group(format!("all-equal-{}", std::any::type_name::<T>()));
+    let mut group = c.benchmark_group(format!("filter-{}", std::any::type_name::<T>()));
     let mut len = 1;
 
     while len < (1 << 11) {
