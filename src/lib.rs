@@ -12,6 +12,7 @@ mod find;
 mod is_sorted;
 mod max;
 mod min;
+mod minmax;
 mod position;
 
 pub use all_equal::AllEqualSimd;
@@ -22,4 +23,5 @@ pub use find::FindSimd;
 pub use is_sorted::IsSortedSimd;
 pub use max::MaxSimd;
 pub use min::MinSimd;
+pub use minmax::MinMaxSimd;
 pub use position::PositionSimd;
