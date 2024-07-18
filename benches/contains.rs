@@ -61,6 +61,8 @@ where
         group.bench_function(BenchmarkId::new("Scalar", len), |b| {
             b.iter(|| black_box(v1.iter().contains(&needle)))
         });
+
+        len *= 10;
     }
     group.finish();
 }
