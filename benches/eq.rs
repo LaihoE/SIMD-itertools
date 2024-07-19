@@ -12,7 +12,7 @@ where
     T: SimdElement + std::cmp::PartialEq,
     Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
 {
-    let mut group = c.benchmark_group(format!("contains-{}", std::any::type_name::<T>()));
+    let mut group = c.benchmark_group(format!("eq-{}", std::any::type_name::<T>()));
     let mut len = 1;
 
     while len < (1 << 11) {

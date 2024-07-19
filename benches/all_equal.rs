@@ -37,17 +37,17 @@ where
 
 fn criterion_benchmark(c: &mut Criterion) {
     benchmark_all_equal::<u8>(c);
-    // benchmark_all_equal::<i8>(c);
-    // benchmark_all_equal::<u16>(c);
-    // benchmark_all_equal::<i16>(c, "i16", n);
-    // benchmark_all_equal::<u32>(c, "u32", n);
-    // benchmark_all_equal::<i32>(c, "i32", n);
-    // benchmark_all_equal::<u64>(c, "u64", n);
-    // benchmark_all_equal::<i64>(c, "i64", n);
-    // benchmark_all_equal::<f32>(c, "f32", n);
-    // benchmark_all_equal::<f64>(c, "f64", n);
-    // benchmark_all_equal::<isize>(c, "isize", n);
-    // benchmark_all_equal::<usize>(c, "usize", n);
+    benchmark_all_equal::<i8>(c);
+    benchmark_all_equal::<u16>(c);
+    benchmark_all_equal::<i16>(c);
+    benchmark_all_equal::<u32>(c);
+    benchmark_all_equal::<i32>(c);
+    benchmark_all_equal::<u64>(c);
+    benchmark_all_equal::<i64>(c);
+    benchmark_all_equal::<f32>(c);
+    benchmark_all_equal::<f64>(c);
+    benchmark_all_equal::<isize>(c);
+    benchmark_all_equal::<usize>(c);
 }
 
 criterion_group!(benches, criterion_benchmark);
