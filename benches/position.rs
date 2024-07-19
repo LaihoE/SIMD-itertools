@@ -66,22 +66,20 @@ where
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    for n in (0..200).map(|x| x * 10) {
-        benchmark_position::<u8>(c);
-        benchmark_position::<u64>(c);
-        benchmark_position::<u32>(c);
-        benchmark_position::<u8>(c);
-        benchmark_position::<i8>(c);
-        benchmark_position::<u16>(c);
-        benchmark_position::<i16>(c);
-        benchmark_position::<i32>(c);
-        benchmark_position::<u64>(c);
-        benchmark_position::<i64>(c);
-        benchmark_position::<isize>(c);
-        benchmark_position::<usize>(c);
-        benchmark_position_floats::<f32>(c);
-        benchmark_position_floats::<f64>(c);
-    }
+    benchmark_position::<u8>(c);
+    benchmark_position::<u64>(c);
+    benchmark_position::<u32>(c);
+    benchmark_position::<u8>(c);
+    benchmark_position::<i8>(c);
+    benchmark_position::<u16>(c);
+    benchmark_position::<i16>(c);
+    benchmark_position::<i32>(c);
+    benchmark_position::<u64>(c);
+    benchmark_position::<i64>(c);
+    benchmark_position::<isize>(c);
+    benchmark_position::<usize>(c);
+    benchmark_position_floats::<f32>(c);
+    benchmark_position_floats::<f64>(c);
 }
 
 criterion_group!(benches, criterion_benchmark);
