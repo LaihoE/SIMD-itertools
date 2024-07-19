@@ -2,37 +2,41 @@
 #![feature(is_sorted)]
 #![feature(sort_floats)]
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use simd_itertools::{PositionSimd, SIMD_LEN};
 use std::{
     fmt::Debug,
     simd::{prelude::SimdPartialEq, Mask, Simd, SimdElement},
-    time::Duration,
 };
 
-fn benchmark_contains<'a, T: 'static + Copy + PartialEq + Default + Debug>(
-    _c: &mut Criterion,
-    name: &str,
-    len: usize,
-) where
+fn benchmark_position<'a, T: 'static + Copy + PartialEq + Default + Debug>(c: &mut Criterion)
+where
     T: SimdElement + std::cmp::PartialEq + TryFrom<i32> + Debug,
     Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
     <T as TryFrom<i32>>::Error: Debug,
 {
-    let v1 = vec![T::default(); len];
-    let needle: T = 55.try_into().unwrap();
+    let mut group = c.benchmark_group(format!("max-{}", std::any::type_name::<T>()));
+    let mut len = 1;
 
-    let mut group = Criterion::default()
-        .warm_up_time(Duration::from_secs(1))
-        .measurement_time(Duration::from_secs(1));
-    group.bench_function(&format!("SIMD position {} {}", name, len), |b| {
-        b.iter(|| black_box(v1.iter().position_simd(needle)))
-    });
-    group.bench_function(&format!("Scalar position {} {}", name, len), |b| {
-        b.iter(|| black_box(v1.iter().position(|x| *x == needle)))
-    });
+    while len < (1 << 11) {
+        let v1 = vec![T::default(); len];
+        let needle: T = 55.try_into().unwrap();
+
+        group.throughput(Throughput::Elements(len as u64));
+
+        group.bench_function(BenchmarkId::new("SIMD", len), |b| {
+            b.iter(|| black_box(v1.iter().position_simd(needle)))
+        });
+        group.bench_function(BenchmarkId::new("Scalar", len), |b| {
+            b.iter(|| black_box(v1.iter().position(|x| *x == needle)))
+        });
+
+        len *= 10;
+    }
+
+    group.finish();
 }
-fn benchmark_contains_floats<'a, T: 'static + Copy + PartialEq + Default + Debug>(
+fn benchmark_position_floats<'a, T: 'static + Copy + PartialEq + Default + Debug>(
     _c: &mut Criterion,
     name: &str,
     len: usize,
