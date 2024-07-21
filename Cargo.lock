@@ -461,7 +461,7 @@ dependencies = [
 
 [[package]]
 name = "simd-itertools"
-version = "0.1.0"
+version = "0.2.3"
 dependencies = [
  "criterion",
  "itertools 0.13.0",

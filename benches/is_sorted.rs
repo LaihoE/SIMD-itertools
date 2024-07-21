@@ -1,53 +1,52 @@
 #![feature(portable_simd)]
 #![feature(is_sorted)]
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use simd_itertools::IsSortedSimd;
-use simd_itertools::SIMD_LEN;
-use std::fmt::Debug;
-use std::simd::prelude::SimdPartialOrd;
-use std::simd::Mask;
-use std::simd::{Simd, SimdElement};
-use std::time::Duration;
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use simd_itertools::{IsSortedSimd, SIMD_LEN};
+use std::{
+    fmt::Debug,
+    simd::{prelude::SimdPartialOrd, Mask, Simd, SimdElement},
+};
 
-fn benchmark_contains<'a, T: 'static + Copy + PartialEq + Default + Debug>(
-    _c: &mut Criterion,
-    name: &str,
-    len: usize,
-) where
+fn benchmark_is_sorted<'a, T: 'static + Copy + PartialEq + Default + Debug>(c: &mut Criterion)
+where
     T: SimdElement + std::cmp::PartialEq + Debug + std::cmp::PartialOrd,
     Simd<T, SIMD_LEN>: SimdPartialOrd<Mask = Mask<T::Mask, SIMD_LEN>>,
 {
-    let v1 = vec![T::default(); len];
-    let v2 = vec![T::default(); len];
-    assert_eq!(v1, v2);
+    let mut group = c.benchmark_group(format!("is-sorted-{}", std::any::type_name::<T>()));
+    let mut len = 1;
 
-    let mut group = Criterion::default()
-        .warm_up_time(Duration::from_secs(1))
-        .measurement_time(Duration::from_secs(1));
-    group.bench_function(&format!("SIMD is_sorted {} {}", name, len), |b| {
-        b.iter(|| black_box(black_box(&v1).iter().is_sorted_simd()))
-    });
-    group.bench_function(&format!("Scalar is_sorted {} {}", name, len), |b| {
-        b.iter(|| black_box(v1.iter().is_sorted()))
-    });
+    while len < (1 << 11) {
+        let v1 = vec![T::default(); len];
+
+        group.throughput(Throughput::Elements(len as u64));
+
+        group.bench_function(BenchmarkId::new("SIMD", len), |b| {
+            b.iter(|| black_box(v1.iter().is_sorted_simd()))
+        });
+        group.bench_function(BenchmarkId::new("Scalar", len), |b| {
+            b.iter(|| black_box(v1.iter().is_sorted()))
+        });
+
+        len *= 10;
+    }
+
+    group.finish();
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    for n in (0..200).map(|x| x * 10) {
-        benchmark_contains::<u8>(c, "u8", n);
-        benchmark_contains::<i8>(c, "i8", n);
-        benchmark_contains::<u16>(c, "u16", n);
-        benchmark_contains::<i16>(c, "i16", n);
-        benchmark_contains::<u32>(c, "u32", n);
-        benchmark_contains::<i32>(c, "i32", n);
-        benchmark_contains::<u64>(c, "u64", n);
-        benchmark_contains::<i64>(c, "i64", n);
-        benchmark_contains::<isize>(c, "isize", n);
-        benchmark_contains::<usize>(c, "usize", n);
-        benchmark_contains::<f32>(c, "f32", n);
-        benchmark_contains::<f64>(c, "f64", n);
-    }
+    benchmark_is_sorted::<u8>(c);
+    benchmark_is_sorted::<i8>(c);
+    benchmark_is_sorted::<u16>(c);
+    benchmark_is_sorted::<i16>(c);
+    benchmark_is_sorted::<u32>(c);
+    benchmark_is_sorted::<i32>(c);
+    benchmark_is_sorted::<u64>(c);
+    benchmark_is_sorted::<i64>(c);
+    benchmark_is_sorted::<isize>(c);
+    benchmark_is_sorted::<usize>(c);
+    benchmark_is_sorted::<f32>(c);
+    benchmark_is_sorted::<f64>(c);
 }
 
 criterion_group!(benches, criterion_benchmark);
