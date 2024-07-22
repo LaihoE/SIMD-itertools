@@ -11,6 +11,7 @@ where
 {
     fn position_simd(&self, needle: T) -> Option<usize>;
 }
+const UNROLL_FACTOR: usize = 4;
 
 impl<'a, T> PositionSimd<'a, T> for slice::Iter<'a, T>
 where
@@ -26,16 +27,38 @@ where
         }
         // SIMD
         let simd_needle = Simd::splat(needle);
-        for (chunk_idx, chunk) in simd_data.iter().enumerate() {
+        let mut unrolled_loops = 0;
+        // Unrolled loops
+        let mut chunks_iter = simd_data.chunks_exact(UNROLL_FACTOR);
+        for chunks in chunks_iter.by_ref() {
+            let mut mask = Mask::default();
+            for chunk in chunks {
+                mask |= chunk.simd_eq(simd_needle);
+            }
+            if mask.any() {
+                for (mask_idx, c) in chunks.iter().enumerate() {
+                    let mask = c.simd_eq(simd_needle);
+                    if mask.any() {
+                        return Some(
+                            prefix.len()
+                                + (unrolled_loops * (SIMD_LEN * UNROLL_FACTOR))      // Full outer loops
+                                + mask_idx * SIMD_LEN                           // nth inner loop
+                                + mask.to_bitmask().trailing_zeros() as usize, // nth element in matching mask
+                        );
+                    }
+                }
+            }
+            unrolled_loops += 1;
+        }
+        // Last simd loops that are not unrolled (loops that were not divisible by UNROLL_FACTOR)
+        for (idx, chunk) in chunks_iter.remainder().iter().enumerate() {
             let mask = chunk.simd_eq(simd_needle).to_bitmask();
             if mask != 0 {
-                // Example:
-                // needle = 10
-                // prefix = [1,2,3]
-                // SIMD = [[4,5,6,7], [8,9,10,11]]
-                // 3 + (1 * 4) + (trailing_zeros(0b0010) == 2) = 9
                 return Some(
-                    prefix.len() + (chunk_idx * SIMD_LEN) + (mask.trailing_zeros() as usize),
+                    prefix.len()
+                        + (unrolled_loops * UNROLL_FACTOR * SIMD_LEN)
+                        + (idx * SIMD_LEN)
+                        + (mask.trailing_zeros() as usize),
                 );
             }
         }
@@ -67,7 +90,7 @@ mod tests {
         Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
         Standard: Distribution<T>,
     {
-        for len in 0..100 {
+        for len in 0..800 {
             for _ in 0..5 {
                 let mut v: Vec<T> = vec![T::default(); len];
                 let mut rng = rand::thread_rng();
