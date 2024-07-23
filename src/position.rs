@@ -1,4 +1,5 @@
 use crate::SIMD_LEN;
+use crate::UNROLL_FACTOR;
 use std::simd::cmp::SimdPartialEq;
 use std::simd::Mask;
 use std::simd::{Simd, SimdElement};
@@ -11,7 +12,6 @@ where
 {
     fn position_simd(&self, needle: T) -> Option<usize>;
 }
-const UNROLL_FACTOR: usize = 4;
 
 impl<'a, T> PositionSimd<'a, T> for slice::Iter<'a, T>
 where
@@ -50,7 +50,7 @@ where
             }
             unrolled_loops += 1;
         }
-        // Last simd loops that are not unrolled (loops that were not divisible by UNROLL_FACTOR)
+        // Remaining simd loops that where not divisible by UNROLL_FACTOR
         for (idx, chunk) in chunks_iter.remainder().iter().enumerate() {
             let mask = chunk.simd_eq(simd_needle).to_bitmask();
             if mask != 0 {
@@ -90,14 +90,13 @@ mod tests {
         Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
         Standard: Distribution<T>,
     {
-        for len in 0..800 {
-            for _ in 0..5 {
+        for len in 0..500 {
+            for _ in 0..200 {
                 let mut v: Vec<T> = vec![T::default(); len];
                 let mut rng = rand::thread_rng();
                 for x in v.iter_mut() {
                     *x = rng.gen()
                 }
-
                 let needle = match rng.gen_bool(0.5) {
                     true => v.choose(&mut rng).cloned().unwrap_or(T::default()),
                     false => loop {
@@ -107,6 +106,7 @@ mod tests {
                         }
                     },
                 };
+
                 let ans = v.iter().position_simd(needle);
                 let correct = v.iter().position(|x| *x == needle);
 
