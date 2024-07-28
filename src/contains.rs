@@ -1,4 +1,5 @@
 use crate::SIMD_LEN;
+use crate::UNROLL_FACTOR;
 use std::simd::cmp::SimdPartialEq;
 use std::simd::Mask;
 use std::simd::{Simd, SimdElement};
@@ -19,16 +20,27 @@ where
 {
     fn contains_simd(&self, needle: &T) -> bool {
         let arr = self.as_slice();
-        let (prefix, aligned_chunks, suffix) = arr.as_simd::<SIMD_LEN>();
+        let (prefix, simd_data, suffix) = arr.as_simd::<SIMD_LEN>();
         // Prefix
         if prefix.contains(&needle) {
             return true;
         }
         // SIMD
         let simd_needle = Simd::splat(*needle);
-        for chunk in aligned_chunks {
-            let mask = chunk.simd_eq(simd_needle).to_bitmask();
-            if mask != 0 {
+        // Unrolled loops
+        let mut chunks_iter = simd_data.chunks_exact(UNROLL_FACTOR);
+        for chunks in chunks_iter.by_ref() {
+            let mut mask = Mask::default();
+            for chunk in chunks {
+                mask |= chunk.simd_eq(simd_needle);
+            }
+            if mask.any() {
+                return true;
+            }
+        }
+        for chunk in chunks_iter.remainder() {
+            let mask = chunk.simd_eq(simd_needle);
+            if mask.any() {
                 return true;
             }
         }
@@ -57,7 +69,7 @@ mod tests {
         Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
         Standard: Distribution<T>,
     {
-        for len in 0..100 {
+        for len in 0..500 {
             for _ in 0..5 {
                 let mut v: Vec<T> = vec![T::default(); len];
                 let mut rng = rand::thread_rng();
