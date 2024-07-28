@@ -2,7 +2,7 @@
 #![feature(is_sorted)]
 #![feature(sort_floats)]
 
-pub const UNROLL_FACTOR: usize = 1;
+pub const UNROLL_FACTOR: usize = 4;
 pub const SIMD_LEN: usize = 32;
 
 mod all_equal;
