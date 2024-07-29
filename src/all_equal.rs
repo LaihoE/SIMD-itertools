@@ -1,10 +1,37 @@
 use crate::SIMD_LEN;
+use multiversion::multiversion;
 use std::simd::cmp::SimdPartialEq;
 use std::simd::Mask;
 use std::simd::Simd;
 use std::simd::SimdElement;
 use std::slice;
 
+#[multiversion(targets = "simd")]
+fn all_equal_simd_internal<T>(arr: &[T]) -> bool
+where
+    T: SimdElement + std::cmp::PartialEq,
+    Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
+{
+    if arr.is_empty() {
+        return true;
+    }
+    let first = arr[0];
+    let (prefix, simd_data, suffix) = arr.as_simd::<SIMD_LEN>();
+    // Prefix
+    if !prefix.iter().all(|x| *x == first) {
+        return false;
+    }
+    // SIMD
+    let simd_needle = Simd::splat(first);
+    for rest_slice in simd_data {
+        let mask = rest_slice.simd_ne(simd_needle).to_bitmask();
+        if mask != 0 {
+            return false;
+        }
+    }
+    // Suffix
+    suffix.iter().all(|x| *x == first)
+}
 pub trait AllEqualSimd<'a, T>
 where
     T: SimdElement + std::cmp::PartialEq,
@@ -19,26 +46,7 @@ where
     Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
 {
     fn all_equal_simd(&self) -> bool {
-        let arr = self.as_slice();
-        if arr.is_empty() {
-            return true;
-        }
-        let first = arr[0];
-        let (prefix, simd_data, suffix) = arr.as_simd::<SIMD_LEN>();
-        // Prefix
-        if !prefix.iter().all(|x| *x == first) {
-            return false;
-        }
-        // SIMD
-        let simd_needle = Simd::splat(first);
-        for rest_slice in simd_data {
-            let mask = rest_slice.simd_ne(simd_needle).to_bitmask();
-            if mask != 0 {
-                return false;
-            }
-        }
-        // Suffix
-        suffix.iter().all(|x| *x == first)
+        all_equal_simd_internal(self.as_slice())
     }
 }
 

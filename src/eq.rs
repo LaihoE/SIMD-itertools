@@ -1,10 +1,36 @@
 use crate::SIMD_LEN;
 use crate::UNROLL_FACTOR;
+use multiversion::multiversion;
 use std::simd::cmp::SimdPartialEq;
 use std::simd::Mask;
 use std::simd::Simd;
 use std::simd::SimdElement;
 use std::slice;
+
+#[multiversion(targets = "simd")]
+fn eq_simd_internal<T>(a: &[T], b: &[T]) -> bool
+where
+    T: SimdElement + std::cmp::PartialEq,
+    Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
+{
+    if a.len() != b.len() {
+        return false;
+    }
+
+    let mut chunks_a = a.chunks_exact(SIMD_LEN * UNROLL_FACTOR);
+    let mut chunks_b = b.chunks_exact(SIMD_LEN * UNROLL_FACTOR);
+    let mut mask = Mask::default();
+
+    for (aa, bb) in chunks_a.by_ref().zip(chunks_b.by_ref()) {
+        for (aaa, bbb) in aa.chunks_exact(SIMD_LEN).zip(bb.chunks_exact(SIMD_LEN)) {
+            mask |= Simd::from_slice(aaa).simd_ne(Simd::from_slice(bbb));
+        }
+        if mask.any() {
+            return false;
+        }
+    }
+    return chunks_a.remainder().eq(chunks_b.remainder());
+}
 
 pub trait EqSimd<'a, T>
 where
@@ -20,25 +46,7 @@ where
     Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
 {
     fn eq_simd(&self, other: &Self) -> bool {
-        let a = self.as_slice();
-        let b = other.as_slice();
-        if a.len() != b.len() {
-            return false;
-        }
-
-        let mut chunks_a = a.chunks_exact(SIMD_LEN * UNROLL_FACTOR);
-        let mut chunks_b = b.chunks_exact(SIMD_LEN * UNROLL_FACTOR);
-        let mut mask = Mask::default();
-
-        for (aa, bb) in chunks_a.by_ref().zip(chunks_b.by_ref()) {
-            for (aaa, bbb) in aa.chunks_exact(SIMD_LEN).zip(bb.chunks_exact(SIMD_LEN)) {
-                mask |= Simd::from_slice(aaa).simd_ne(Simd::from_slice(bbb));
-            }
-            if mask.any() {
-                return false;
-            }
-        }
-        return chunks_a.remainder().eq(chunks_b.remainder());
+        eq_simd_internal(self.as_slice(), other.as_slice())
     }
 }
 

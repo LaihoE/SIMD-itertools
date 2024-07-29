@@ -1,3 +1,4 @@
+use multiversion::multiversion;
 use std::simd::cmp::SimdPartialOrd;
 use std::simd::prelude::SimdPartialEq;
 use std::simd::usizex8;
@@ -6,116 +7,111 @@ use std::simd::Simd;
 use std::simd::SimdElement;
 use std::slice;
 
-pub trait FilterSimd<'a, T>
-where
-    T: SimdElement + std::cmp::PartialEq + std::cmp::PartialOrd,
-    Simd<T, 8>: SimdPartialEq<Mask = Mask<T::Mask, 8>>,
-{
-    fn filter_simd_lt(&self, needle: T) -> Vec<T>;
-    fn filter_simd_gt(&self, needle: T) -> Vec<T>;
-    fn filter_simd_eq(&self, needle: T) -> Vec<T>;
-}
-
-// TODO REMOVE DUPLICATION?
-impl<'a, T> FilterSimd<'a, T> for slice::Iter<'a, T>
+#[multiversion(targets = "simd")]
+fn filter_simd_lt_internal<T>(a: &[T], needle: T) -> Vec<T>
 where
     T: SimdElement + std::cmp::PartialEq + std::cmp::PartialOrd + Default,
     Simd<T, 8>: SimdPartialOrd<Mask = Mask<T::Mask, 8>>,
 {
-    fn filter_simd_lt(&self, needle: T) -> Vec<T> {
-        let a = self.as_slice();
-        let mut indicies = vec![];
-        let (prefix, simd_chunk, suffix) = a.as_simd::<8>();
-        let prefix_filters = prefix.iter().filter(|x| **x < needle);
+    let mut indicies = vec![];
+    let (prefix, simd_chunk, suffix) = a.as_simd::<8>();
+    let prefix_filters = prefix.iter().filter(|x| **x < needle);
 
-        indicies.extend(prefix_filters);
-        let prefix_filters_len = indicies.len();
-        indicies.resize(std::cmp::max(prefix_filters_len, 64), T::default());
-        let simd_needle = Simd::splat(needle);
-        let mut simd_idx = prefix_filters_len;
+    indicies.extend(prefix_filters);
+    let prefix_filters_len = indicies.len();
+    indicies.resize(std::cmp::max(prefix_filters_len, 64), T::default());
+    let simd_needle = Simd::splat(needle);
+    let mut simd_idx = prefix_filters_len;
 
-        // SIMD
-        for chunk in simd_chunk {
-            let x = chunk.simd_lt(simd_needle);
-            let bitmask = x.to_bitmask();
-            if bitmask != 0 {
-                let idxs = SET_BITS_TO_INDICIES[bitmask as usize];
-                chunk.scatter(&mut indicies[simd_idx..], idxs);
-                simd_idx += bitmask.count_ones() as usize;
-                if simd_idx <= indicies.len() {
-                    indicies.resize(indicies.len() + 64, T::default());
-                }
+    // SIMD
+    for chunk in simd_chunk {
+        let x = chunk.simd_lt(simd_needle);
+        let bitmask = x.to_bitmask();
+        if bitmask != 0 {
+            let idxs = SET_BITS_TO_INDICIES[bitmask as usize];
+            chunk.scatter(&mut indicies[simd_idx..], idxs);
+            simd_idx += bitmask.count_ones() as usize;
+            if simd_idx <= indicies.len() {
+                indicies.resize(indicies.len() + 64, T::default());
             }
         }
-
-        indicies.truncate(simd_idx);
-        let suffix_filters = suffix.iter().filter(|x| **x < needle);
-        indicies.extend(suffix_filters);
-        indicies
     }
-    fn filter_simd_gt(&self, needle: T) -> Vec<T> {
-        let a = self.as_slice();
-        let mut indicies = vec![];
-        let (prefix, simd_chunk, suffix) = a.as_simd::<8>();
-        let prefix_filters = prefix.iter().filter(|x| **x > needle);
 
-        indicies.extend(prefix_filters);
-        let prefix_filters_len = indicies.len();
-        indicies.resize(std::cmp::max(prefix_filters_len, 64), T::default());
-        let simd_needle = Simd::splat(needle);
-        let mut simd_idx = prefix_filters_len;
+    indicies.truncate(simd_idx);
+    let suffix_filters = suffix.iter().filter(|x| **x < needle);
+    indicies.extend(suffix_filters);
+    indicies
+}
+#[multiversion(targets = "simd")]
+fn filter_simd_gt_internal<T>(a: &[T], needle: T) -> Vec<T>
+where
+    T: SimdElement + std::cmp::PartialEq + std::cmp::PartialOrd + Default,
+    Simd<T, 8>: SimdPartialOrd<Mask = Mask<T::Mask, 8>>,
+{
+    let mut indicies = vec![];
+    let (prefix, simd_chunk, suffix) = a.as_simd::<8>();
+    let prefix_filters = prefix.iter().filter(|x| **x > needle);
 
-        // SIMD
-        for chunk in simd_chunk {
-            let x = chunk.simd_gt(simd_needle);
-            let bitmask = x.to_bitmask();
-            if bitmask != 0 {
-                let idxs = SET_BITS_TO_INDICIES[bitmask as usize];
-                chunk.scatter(&mut indicies[simd_idx..], idxs);
-                simd_idx += bitmask.count_ones() as usize;
+    indicies.extend(prefix_filters);
+    let prefix_filters_len = indicies.len();
+    indicies.resize(std::cmp::max(prefix_filters_len, 64), T::default());
+    let simd_needle = Simd::splat(needle);
+    let mut simd_idx = prefix_filters_len;
 
-                if simd_idx <= indicies.len() {
-                    indicies.resize(indicies.len() + 64, T::default());
-                }
+    // SIMD
+    for chunk in simd_chunk {
+        let x = chunk.simd_gt(simd_needle);
+        let bitmask = x.to_bitmask();
+        if bitmask != 0 {
+            let idxs = SET_BITS_TO_INDICIES[bitmask as usize];
+            chunk.scatter(&mut indicies[simd_idx..], idxs);
+            simd_idx += bitmask.count_ones() as usize;
+
+            if simd_idx <= indicies.len() {
+                indicies.resize(indicies.len() + 64, T::default());
             }
         }
-
-        indicies.truncate(simd_idx);
-        let suffix_filters = suffix.iter().filter(|x| **x > needle);
-        indicies.extend(suffix_filters);
-        indicies
     }
-    fn filter_simd_eq(&self, needle: T) -> Vec<T> {
-        let a = self.as_slice();
-        let mut indicies = vec![];
-        let (prefix, simd_chunk, suffix) = a.as_simd::<8>();
-        let prefix_filters = prefix.iter().filter(|x| **x == needle);
 
-        indicies.extend(prefix_filters);
-        let prefix_filters_len = indicies.len();
-        indicies.resize(std::cmp::max(prefix_filters_len, 64), T::default());
-        let simd_needle = Simd::splat(needle);
-        let mut simd_idx = prefix_filters_len;
+    indicies.truncate(simd_idx);
+    let suffix_filters = suffix.iter().filter(|x| **x > needle);
+    indicies.extend(suffix_filters);
+    indicies
+}
+#[multiversion(targets = "simd")]
+fn filter_simd_eq_internal<T>(a: &[T], needle: T) -> Vec<T>
+where
+    T: SimdElement + std::cmp::PartialEq + std::cmp::PartialOrd + Default,
+    Simd<T, 8>: SimdPartialOrd<Mask = Mask<T::Mask, 8>>,
+{
+    let mut indicies = vec![];
+    let (prefix, simd_chunk, suffix) = a.as_simd::<8>();
+    let prefix_filters = prefix.iter().filter(|x| **x == needle);
 
-        // SIMD
-        for chunk in simd_chunk {
-            let x = chunk.simd_eq(simd_needle);
-            let bitmask = x.to_bitmask();
-            if bitmask != 0 {
-                let idxs = SET_BITS_TO_INDICIES[bitmask as usize];
-                chunk.scatter(&mut indicies[simd_idx..], idxs);
-                simd_idx += bitmask.count_ones() as usize;
-                if simd_idx <= indicies.len() {
-                    indicies.resize(indicies.len() + 64, T::default());
-                }
+    indicies.extend(prefix_filters);
+    let prefix_filters_len = indicies.len();
+    indicies.resize(std::cmp::max(prefix_filters_len, 64), T::default());
+    let simd_needle = Simd::splat(needle);
+    let mut simd_idx = prefix_filters_len;
+
+    // SIMD
+    for chunk in simd_chunk {
+        let x = chunk.simd_eq(simd_needle);
+        let bitmask = x.to_bitmask();
+        if bitmask != 0 {
+            let idxs = SET_BITS_TO_INDICIES[bitmask as usize];
+            chunk.scatter(&mut indicies[simd_idx..], idxs);
+            simd_idx += bitmask.count_ones() as usize;
+            if simd_idx <= indicies.len() {
+                indicies.resize(indicies.len() + 64, T::default());
             }
         }
-
-        indicies.truncate(simd_idx);
-        let suffix_filters = suffix.iter().filter(|x| **x == needle);
-        indicies.extend(suffix_filters);
-        indicies
     }
+
+    indicies.truncate(simd_idx);
+    let suffix_filters = suffix.iter().filter(|x| **x == needle);
+    indicies.extend(suffix_filters);
+    indicies
 }
 
 const SET_BITS_TO_INDICIES: [usizex8; 256] = [
@@ -376,6 +372,33 @@ const SET_BITS_TO_INDICIES: [usizex8; 256] = [
     usizex8::from_array([255, 0, 1, 2, 3, 4, 5, 6]),
     usizex8::from_array([0, 1, 2, 3, 4, 5, 6, 7]),
 ];
+
+pub trait FilterSimd<'a, T>
+where
+    T: SimdElement + std::cmp::PartialEq + std::cmp::PartialOrd,
+    Simd<T, 8>: SimdPartialEq<Mask = Mask<T::Mask, 8>>,
+{
+    fn filter_simd_lt(&self, needle: T) -> Vec<T>;
+    fn filter_simd_gt(&self, needle: T) -> Vec<T>;
+    fn filter_simd_eq(&self, needle: T) -> Vec<T>;
+}
+
+// TODO REMOVE DUPLICATION?
+impl<'a, T> FilterSimd<'a, T> for slice::Iter<'a, T>
+where
+    T: SimdElement + std::cmp::PartialEq + std::cmp::PartialOrd + Default,
+    Simd<T, 8>: SimdPartialOrd<Mask = Mask<T::Mask, 8>>,
+{
+    fn filter_simd_eq(&self, needle: T) -> Vec<T> {
+        filter_simd_eq_internal(self.as_slice(), needle)
+    }
+    fn filter_simd_gt(&self, needle: T) -> Vec<T> {
+        filter_simd_gt_internal(self.as_slice(), needle)
+    }
+    fn filter_simd_lt(&self, needle: T) -> Vec<T> {
+        filter_simd_lt_internal(self.as_slice(), needle)
+    }
+}
 
 #[cfg(test)]
 mod tests {

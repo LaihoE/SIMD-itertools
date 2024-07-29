@@ -1,9 +1,39 @@
 use crate::SIMD_LEN;
+use multiversion::multiversion;
 use std::simd::cmp::SimdPartialOrd;
 use std::simd::Mask;
 use std::simd::Simd;
 use std::simd::SimdElement;
 use std::slice;
+
+#[multiversion(targets = "simd")]
+fn is_sorted_simd_internal<T>(a: &[T]) -> bool
+where
+    T: SimdElement + std::cmp::PartialOrd,
+    Simd<T, SIMD_LEN>: SimdPartialOrd<Mask = Mask<T::Mask, SIMD_LEN>>,
+{
+    if a.len() <= SIMD_LEN && !a.is_empty() {
+        return a.is_sorted();
+    }
+
+    let chunks_a = a.chunks_exact(SIMD_LEN);
+    let chunks_b = a[1..].chunks_exact(SIMD_LEN);
+    let reminder_a_is_sorted = chunks_a.remainder().iter().is_sorted();
+    let reminder_b_is_sorted = chunks_b.remainder().iter().is_sorted();
+
+    // chunk:         [1,2,3,4]
+    // offset_by_one: [2,3,4,5]
+    // If for all chunk[i] <= offset[i] then the slice is sorted
+
+    for (a, b) in chunks_a.zip(chunks_b) {
+        let chunk = Simd::from_slice(a);
+        let chunk_offset_by_one = Simd::from_slice(b);
+        if chunk.simd_gt(chunk_offset_by_one).to_bitmask() != 0 {
+            return false;
+        }
+    }
+    reminder_a_is_sorted | reminder_b_is_sorted
+}
 
 pub trait IsSortedSimd<'a, T>
 where
@@ -12,36 +42,13 @@ where
 {
     fn is_sorted_simd(&self) -> bool;
 }
-
 impl<'a, T> IsSortedSimd<'a, T> for slice::Iter<'a, T>
 where
     T: SimdElement + std::cmp::PartialOrd,
     Simd<T, SIMD_LEN>: SimdPartialOrd<Mask = Mask<T::Mask, SIMD_LEN>>,
 {
     fn is_sorted_simd(&self) -> bool {
-        let a = self.as_slice();
-
-        if a.len() <= SIMD_LEN && !a.is_empty() {
-            return a.is_sorted();
-        }
-
-        let chunks_a = a.chunks_exact(SIMD_LEN);
-        let chunks_b = a[1..].chunks_exact(SIMD_LEN);
-        let reminder_a_is_sorted = chunks_a.remainder().iter().is_sorted();
-        let reminder_b_is_sorted = chunks_b.remainder().iter().is_sorted();
-
-        // chunk:         [1,2,3,4]
-        // offset_by_one: [2,3,4,5]
-        // If for all chunk[i] <= offset[i] then the slice is sorted
-
-        for (a, b) in chunks_a.zip(chunks_b) {
-            let chunk = Simd::from_slice(a);
-            let chunk_offset_by_one = Simd::from_slice(b);
-            if chunk.simd_gt(chunk_offset_by_one).to_bitmask() != 0 {
-                return false;
-            }
-        }
-        reminder_a_is_sorted | reminder_b_is_sorted
+        is_sorted_simd_internal(self.as_slice())
     }
 }
 
