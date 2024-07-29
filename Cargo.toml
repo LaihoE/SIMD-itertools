@@ -11,6 +11,7 @@ repository = "https://github.com/LaihoE/SIMD-itertools"
 
 [dependencies]
 itertools = "0.13.0"
+multiversion = "0.7.4"
 
 [dev-dependencies]
 criterion = "0.5.1"
@@ -19,38 +20,6 @@ rand = "0.8.5"
 
 [[bench]]
 name = "position"
-harness = false
-
-[[bench]]
-name = "all_equal"
-harness = false
-
-[[bench]]
-name = "contains"
-harness = false
-
-[[bench]]
-name = "eq"
-harness = false
-
-[[bench]]
-name = "filter"
-harness = false
-
-[[bench]]
-name = "find"
-harness = false
-
-[[bench]]
-name = "is_sorted"
-harness = false
-
-[[bench]]
-name = "max"
-harness = false
-
-[[bench]]
-name = "min"
 harness = false
 
 [profile.release]
