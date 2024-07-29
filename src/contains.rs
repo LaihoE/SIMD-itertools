@@ -1,9 +1,44 @@
 use crate::SIMD_LEN;
 use crate::UNROLL_FACTOR;
+use multiversion::multiversion;
 use std::simd::cmp::SimdPartialEq;
 use std::simd::Mask;
 use std::simd::{Simd, SimdElement};
 use std::slice;
+
+#[multiversion(targets = "simd")]
+fn contains_simd_internal<T>(arr: &[T], needle: &T) -> bool
+where
+    T: SimdElement + std::cmp::PartialEq,
+    Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
+{
+    let (prefix, simd_data, suffix) = arr.as_simd::<SIMD_LEN>();
+    // Prefix
+    if prefix.contains(&needle) {
+        return true;
+    }
+    // SIMD
+    let simd_needle = Simd::splat(*needle);
+    // Unrolled loops
+    let mut chunks_iter = simd_data.chunks_exact(UNROLL_FACTOR);
+    for chunks in chunks_iter.by_ref() {
+        let mut mask = Mask::default();
+        for chunk in chunks {
+            mask |= chunk.simd_eq(simd_needle);
+        }
+        if mask.any() {
+            return true;
+        }
+    }
+    for chunk in chunks_iter.remainder() {
+        let mask = chunk.simd_eq(simd_needle);
+        if mask.any() {
+            return true;
+        }
+    }
+    // Suffix
+    suffix.contains(&needle)
+}
 
 pub trait ContainsSimd<'a, T>
 where
@@ -19,36 +54,9 @@ where
     Simd<T, SIMD_LEN>: SimdPartialEq<Mask = Mask<T::Mask, SIMD_LEN>>,
 {
     fn contains_simd(&self, needle: &T) -> bool {
-        let arr = self.as_slice();
-        let (prefix, simd_data, suffix) = arr.as_simd::<SIMD_LEN>();
-        // Prefix
-        if prefix.contains(&needle) {
-            return true;
-        }
-        // SIMD
-        let simd_needle = Simd::splat(*needle);
-        // Unrolled loops
-        let mut chunks_iter = simd_data.chunks_exact(UNROLL_FACTOR);
-        for chunks in chunks_iter.by_ref() {
-            let mut mask = Mask::default();
-            for chunk in chunks {
-                mask |= chunk.simd_eq(simd_needle);
-            }
-            if mask.any() {
-                return true;
-            }
-        }
-        for chunk in chunks_iter.remainder() {
-            let mask = chunk.simd_eq(simd_needle);
-            if mask.any() {
-                return true;
-            }
-        }
-        // Suffix
-        suffix.contains(&needle)
+        contains_simd_internal(self.as_slice(), needle)
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
