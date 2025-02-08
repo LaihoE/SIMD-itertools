@@ -1,26 +1,22 @@
-#![feature(portable_simd)]
-#![feature(is_sorted)]
-#![feature(sort_floats)]
-
+pub const LANE_COUNT: usize = 32;
 pub const UNROLL_FACTOR: usize = 4;
-pub const SIMD_LEN: usize = 32;
 
-mod all_equal;
+mod all;
+mod any;
+mod argmax;
+mod argmin;
 mod contains;
-mod eq;
 mod filter;
 mod find;
-mod is_sorted;
-mod max;
-mod min;
 mod position;
 
-pub use all_equal::AllEqualSimd;
+pub use all::AllSimd;
+pub use any::AnySimd;
+pub use argmax::ArgmaxSimd;
+pub use argmax::ArgmaxSimdFast;
+pub use argmin::ArgminSimd;
+pub use argmin::ArgminSimdFast;
 pub use contains::ContainsSimd;
-pub use eq::EqSimd;
 pub use filter::FilterSimd;
 pub use find::FindSimd;
-pub use is_sorted::IsSortedSimd;
-pub use max::MaxSimd;
-pub use min::MinSimd;
 pub use position::PositionSimd;

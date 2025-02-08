@@ -8,19 +8,14 @@ keywords = ["simd", "iterator"]
 categories = ["algorithms", "concurrency"]
 repository = "https://github.com/LaihoE/SIMD-itertools"
 
-
 [dependencies]
 itertools = "0.13.0"
-multiversion = "0.7.4"
+memchr = "2.7.4"
+multiversion = "0.8.0"
 
 [dev-dependencies]
 criterion = "0.5.1"
 rand = "0.8.5"
-
-
-[[bench]]
-name = "position"
-harness = false
 
 [profile.release]
 lto = true
