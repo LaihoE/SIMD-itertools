@@ -2,14 +2,15 @@
 
 [![crates.io](https://img.shields.io/crates/v/simd-itertools.svg)](https://crates.io/crates/simd-itertools)
 
-Change:
+
+### Unmatched flexibility 🤯
+
 ```Rust
-arr.iter().contains()
+let needles = [42, 52, 94];
+arr.iter().any_simd(|x| needles.contains(x) || x > 156);
 ```
-To:
-```Rust
-arr.iter().contains_simd()
-```
+- Works by letting LLVM do the vectorization (may change in the future).
+- Functions are made easy to paste into Godbolt for inspection.
 
 
 Currently the following are implemented:
@@ -17,30 +18,27 @@ Currently the following are implemented:
 ```find```
 ```filter```
 ```position```
-```contains```
-```eq```
-```min/max```
-```is_sorted```
-```all_equal```
-
-And works for slice iterators of types: ```u8,u16,u32,u64,i8,i16,i32,i64,f32,f64,isize,usize```
-
-### 🔥🚀 Performance gain compared to the standard library 🚀🔥
-![Performance gain of compared to std implementation (u32)](benchmark.png)
-You can expect similar performance across the functions.
+```all```
+```any```
+```argmin/argmax```
 
 
+### Tradeoffs
+Every piece of software makes tradeoffs. The goal of this library it to provide the *majority* of performance gains gained from going scalar -> vectorized, while staying user-friendly. If you are looking to shave off the last few cycles this might not be what you are looking for.
 
-Requires nightly for now 😔:
+
+### ⚠️ Warning ⚠️:
+The library makes one extra assumption over the stdlib: The closure may be executed any number of times:
+
 ```Rust
-rustup toolchain install nightly
-rustup default nightly
-// revert back to stable: rustup default stable
+arr.iter().simd_position(|x| {
+    println!("hello world");
+    *x == 42
+})
 ```
 
+May print a different number of times compared to the standard library. This shouldn't be an issue under normal use-cases but something to keep in mind.
 
-To get the best performance make sure you are compiling with ```-C target-cpu=native```
-For example: 
-```
-RUSTFLAGS='-C target-cpu=native' cargo run
-```
+
+### Why is this not part of the standard library
+It's tricky. Hopefully one day.
