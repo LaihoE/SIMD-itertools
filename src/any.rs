@@ -1,7 +1,6 @@
+use crate::LANE_COUNT;
 use multiversion::multiversion;
 use std::slice;
-
-use crate::LANE_COUNT;
 
 #[multiversion(targets = "simd")]
 fn any_simd_internal<F, T>(v: &[T], f: F) -> bool

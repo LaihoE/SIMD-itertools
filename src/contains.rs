@@ -1,8 +1,13 @@
-pub trait ContainsSimd<T> {
+use crate::LANE_COUNT;
+use std::slice;
+
+pub trait ContainsSimd<'a, T>
+where
+    T: std::cmp::PartialEq,
+{
     fn contains_simd(&self, elem: &T) -> bool;
 }
-
-impl<T> ContainsSimd<T> for [T]
+impl<'a, T> ContainsSimd<'a, T> for slice::Iter<'a, T>
 where
     T: std::cmp::PartialEq,
 {
@@ -10,8 +15,7 @@ where
     where
         T: PartialEq,
     {
-        const LANE_COUNT: usize = 32;
-        let mut chunks = self.chunks_exact(LANE_COUNT);
+        let mut chunks = self.as_slice().chunks_exact(LANE_COUNT);
         for chunk in chunks.by_ref() {
             if chunk.iter().fold(false, |acc, x| acc | (x == elem)) {
                 return true;
@@ -55,7 +59,7 @@ mod tests {
                         }
                     },
                 };
-                let ans = v.contains_simd(&needle);
+                let ans = v.iter().contains_simd(&needle);
                 let correct = v.iter().contains(&needle);
                 assert_eq!(
                     ans,

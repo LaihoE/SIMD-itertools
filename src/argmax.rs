@@ -1,50 +1,31 @@
 use crate::PositionSimd;
+use std::slice;
 
-pub trait ArgmaxSimd<T> {
+pub trait ArgmaxSimd<'a, T>
+where
+    T: std::cmp::PartialEq,
+{
     fn argmax_simd(&self) -> Option<usize>;
-}
-pub trait ArgmaxSimdFast<T> {
     fn argmax_simd_fast(&self) -> Option<usize>;
 }
 
-impl<T> ArgmaxSimd<T> for [T]
+impl<'a, T> ArgmaxSimd<'a, T> for slice::Iter<'a, T>
 where
-    T: PartialOrd + Copy + std::cmp::Ord,
+    T: std::cmp::PartialEq + std::cmp::PartialOrd + Copy + std::cmp::Ord,
 {
-    /// If you are only interested in the value and do not care about the position of the smallest value:
-    /// ```arr.iter().copied().max()``` should produce optimal code.
-    ///
-    /// WARNING:
-    /// The behavior with floats differs from the one in the standard library.
-    /// This function is much more performant but has slightly different behavior when comparing NaN values.
-    ///
-    /// the following comparison is used: ```a < b {a} else { b }```
     fn argmax_simd(&self) -> Option<usize> {
-        match self.iter().cloned().max() {
-            Some(max) => self.iter().position_simd(|x| *x == max), //position_autovec(self, |x| *x == max),
+        match self.as_slice().iter().copied().max() {
+            Some(max) => self.position_simd(|x| *x == max),
             None => None,
         }
     }
-}
-
-impl<T> ArgmaxSimdFast<T> for [T]
-where
-    T: PartialOrd + Copy,
-{
-    /// WARNING:
-    /// The behavior with floats differs from the one in the standard library.
-    /// This function is much more performant but has slightly different behavior when comparing NaN values.
-    ///
-    /// Should perform just as well on non-float types as ```argmax_simd```
-    ///
-    /// the following comparison is used: ```a < b {a} else { b }``` instead of max() (requires Ord)
     fn argmax_simd_fast(&self) -> Option<usize> {
         match self
+            .as_slice()
             .iter()
-            .copied()
-            .reduce(|a, b| if a < b { a } else { b })
+            .reduce(|a, b| if a > b { a } else { b })
         {
-            Some(max) => self.iter().position_simd(|x| *x == max), //position_autovec(self, |x| *x == max),
+            Some(max) => self.position_simd(|x| *x == *max),
             None => None,
         }
     }
@@ -77,7 +58,7 @@ mod tests {
                     *x = rng.gen()
                 }
                 // normal
-                let ans = v.argmax_simd();
+                let ans = v.iter().argmax_simd();
                 let correct = v
                     .iter()
                     .position(|x| *x == v.iter().cloned().max().unwrap());
@@ -90,12 +71,12 @@ mod tests {
                     v
                 );
                 // fast
-                let ans = v.argmax_simd_fast();
+                let ans = v.iter().argmax_simd_fast();
                 let correct = v.iter().position(|x| {
                     *x == v
                         .iter()
                         .copied()
-                        .reduce(|a, b| if a < b { a } else { b })
+                        .reduce(|a, b| if a > b { a } else { b })
                         .unwrap()
                 });
                 assert_eq!(
@@ -111,7 +92,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simd_min() {
+    fn test_simd_max() {
         test_simd_for_type::<i8>();
         test_simd_for_type::<i16>();
         test_simd_for_type::<i32>();
